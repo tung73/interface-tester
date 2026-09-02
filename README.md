@@ -33,13 +33,16 @@ ASMX SOAP envelope (`soap/TestRequest.xml`):
 
 ## Setup
 
-1. Open `InterfaceTester.sln` in Visual Studio (target **.NET Framework 4.8**).
-2. Copy each interface P12 into `InterfaceTester\certs\`:
+1. Open **`InterfaceTester.sln`** in Visual Studio (not File → Open → Folder).
+2. In Solution Explorer, right-click **InterfaceTester** → **Set as Startup Project**.
+3. Copy each interface P12 into `InterfaceTester\certs\`:
    - `caps-wls-uat.p12`
    - `dcs-caps-uat.p12`
    - `dcs-ocr-dev.p12`
-3. Set the matching `p12Password` values in `InterfaceTester\Interfaces.xml`.
-4. Build and run.
+4. Set the matching `p12Password` values in `InterfaceTester\Interfaces.xml`.
+5. Press F5 (Debug → Start Debugging).
+
+If Visual Studio says the startup project cannot be launched, the solution was opened as a folder or another project is selected. Close the folder view, open `InterfaceTester.sln`, and set **InterfaceTester** as the startup project.
 
 ## Run
 
