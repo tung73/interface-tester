@@ -50,6 +50,14 @@ This project is a **.NET Framework 4.8 Console Application**. Visual Studio need
 
 Install them from Visual Studio Installer if the project loads as incompatible / unloaded.
 
+Before a real connection test, copy each interface P12 into `InterfaceTester\certs\`:
+
+- `caps-wls-uat.p12`
+- `dcs-caps-uat.p12`
+- `dcs-ocr-dev.p12`
+
+Then set each `p12Password` in `InterfaceTester\Interfaces.xml`.
+
 ## Run
 
 ```text
