@@ -33,16 +33,22 @@ ASMX SOAP envelope (`soap/TestRequest.xml`):
 
 ## Setup
 
-1. Open **`InterfaceTester.sln`** in Visual Studio (not File → Open → Folder).
-2. In Solution Explorer, right-click **InterfaceTester** → **Set as Startup Project**.
-3. Copy each interface P12 into `InterfaceTester\certs\`:
-   - `caps-wls-uat.p12`
-   - `dcs-caps-uat.p12`
-   - `dcs-ocr-dev.p12`
-4. Set the matching `p12Password` values in `InterfaceTester\Interfaces.xml`.
-5. Press F5 (Debug → Start Debugging).
+1. Pull the latest `main`.
+2. Double-click **`InterfaceTester.sln`** to open it in Visual Studio.
+   Do **not** use File → Open → Folder.
+3. If Solution Explorer says Folder View, click the solution-switch icon and choose `InterfaceTester.sln`.
+4. Right-click **InterfaceTester** → **Set as Startup Project**.
+5. Toolbar should be **Debug** and **Any CPU** (or x86 / x64; all of them build this console app).
+6. Press F5.
 
-If Visual Studio says the startup project cannot be launched, the solution was opened as a folder or another project is selected. Close the folder view, open `InterfaceTester.sln`, and set **InterfaceTester** as the startup project.
+If F5 still fails, double-click **`Run.bat`** in the repo root. That builds and runs without the debugger.
+
+This project is a **.NET Framework 4.8 Console Application**. Visual Studio needs:
+
+- Workload: **.NET desktop development**
+- Component: **.NET Framework 4.8 targeting pack**
+
+Install them from Visual Studio Installer if the project loads as incompatible / unloaded.
 
 ## Run
 

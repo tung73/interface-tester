@@ -3,6 +3,7 @@
 bin-mono/
 .vs/
 *.user
+!InterfaceTester/InterfaceTester.csproj.user
 *.suo
 *.userosscache
 *.sln.docstates
