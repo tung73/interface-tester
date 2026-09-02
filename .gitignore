@@ -1,0 +1,13 @@
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.p12
+*.pfx
+*.pem
+*.key
+certs/*.p12
+certs/*.pfx
