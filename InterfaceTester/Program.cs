@@ -242,7 +242,7 @@ namespace InterfaceTester
 
                 if (!result.CertificateLoaded)
                 {
-                    WriteStatus("  P12", false);
+                    WriteStatus("  P12", false, false);
                     Console.WriteLine("  " + result.CertificateError);
                     continue;
                 }

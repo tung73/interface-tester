@@ -268,6 +268,9 @@ namespace InterfaceTester
 
         private static string ResolvePath(string path, string configPath)
         {
+            path = path.Replace('\\', Path.DirectorySeparatorChar)
+                       .Replace('/', Path.DirectorySeparatorChar);
+
             if (Path.IsPathRooted(path))
             {
                 return path;
