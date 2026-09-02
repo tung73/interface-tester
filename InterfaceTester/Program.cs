@@ -27,6 +27,10 @@ namespace InterfaceTester
                 Console.ResetColor();
                 exitCode = 1;
             }
+            finally
+            {
+                TestLog.Finish();
+            }
 
             Console.WriteLine();
             Console.WriteLine("Press any key to exit...");
@@ -41,6 +45,11 @@ namespace InterfaceTester
 
         private static async Task<int> MainAsync(string[] args)
         {
+            if (!IsListRequest(args))
+            {
+                TestLog.Start();
+            }
+
             ConfigureServicePointManager();
 
             Console.WriteLine("============================================================");
@@ -91,6 +100,7 @@ namespace InterfaceTester
             }
 
             PrintSummary(results);
+            TestLog.WriteSummary(results);
 
             for (int i = 0; i < results.Count; i++)
             {
@@ -252,6 +262,11 @@ namespace InterfaceTester
                     ProbeResult probe = result.Probes[p];
                     WriteStatus("  " + probe.Name, probe.Success, probe.Connected);
                     Console.WriteLine("    " + probe.Detail);
+
+                    if (!String.IsNullOrWhiteSpace(probe.ReturnValue))
+                    {
+                        Console.WriteLine("    API return value: " + probe.ReturnValue);
+                    }
                 }
 
                 Console.Write("  Interface result: ");

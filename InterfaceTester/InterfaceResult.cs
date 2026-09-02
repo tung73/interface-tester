@@ -9,6 +9,10 @@ namespace InterfaceTester
         public bool Success { get; set; }
         public bool Connected { get; set; }
         public string Detail { get; set; }
+        public string ResponseBody { get; set; }
+        public string ReturnValue { get; set; }
+        public int? HttpStatus { get; set; }
+        public string ContentType { get; set; }
 
         public static ProbeResult Pass(string name, string detail)
         {
@@ -30,13 +34,25 @@ namespace InterfaceTester
             return result;
         }
 
-        public static ProbeResult Http(string name, bool connected, bool success, string detail)
+        public static ProbeResult Http(
+            string name,
+            bool connected,
+            bool success,
+            string detail,
+            string responseBody,
+            string returnValue,
+            int? httpStatus,
+            string contentType)
         {
             ProbeResult result = new ProbeResult();
             result.Name = name;
             result.Connected = connected;
             result.Success = success;
             result.Detail = detail;
+            result.ResponseBody = responseBody;
+            result.ReturnValue = returnValue;
+            result.HttpStatus = httpStatus;
+            result.ContentType = contentType;
             return result;
         }
     }

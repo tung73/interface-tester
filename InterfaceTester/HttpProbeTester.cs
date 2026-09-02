@@ -105,7 +105,7 @@ namespace InterfaceTester
 
                 using (HttpWebResponse response = (HttpWebResponse)await request.GetResponseAsync())
                 {
-                    return PrintHttpResponse(probeName, response);
+                    return PrintHttpResponse(endpoint, probeName, response);
                 }
             }
             catch (WebException ex)
@@ -120,7 +120,7 @@ namespace InterfaceTester
                          * An HTTP status or SOAP fault still proves that TCP, TLS,
                          * client-certificate auth, and HTTP all succeeded.
                          */
-                        return PrintHttpResponse(probeName, errorResponse);
+                        return PrintHttpResponse(endpoint, probeName, errorResponse);
                     }
                 }
 
@@ -133,6 +133,7 @@ namespace InterfaceTester
         }
 
         private static ProbeResult PrintHttpResponse(
+            InterfaceEndpoint endpoint,
             string probeName,
             HttpWebResponse response)
         {
@@ -140,6 +141,7 @@ namespace InterfaceTester
             int statusCode = (int)response.StatusCode;
             bool soapFault = IsSoapFault(body);
             bool success = statusCode >= 200 && statusCode < 400 && !soapFault;
+            string returnValue = SoapResponseParser.ExtractReturnValue(body);
 
             string detail =
                 (int)response.StatusCode + " " + response.StatusCode +
@@ -148,6 +150,11 @@ namespace InterfaceTester
             if (soapFault)
             {
                 detail += "; SOAP Fault";
+            }
+
+            if (!String.IsNullOrWhiteSpace(returnValue))
+            {
+                detail += "; return=" + Truncate(returnValue, 120);
             }
 
             if (success)
@@ -167,9 +174,35 @@ namespace InterfaceTester
             Console.WriteLine("  Content-Type: " + response.ContentType);
             Console.WriteLine("  SOAP fault  : " + soapFault);
 
+            if (!String.IsNullOrWhiteSpace(returnValue))
+            {
+                Console.WriteLine("  API return value:");
+                Console.WriteLine(returnValue);
+            }
+            else
+            {
+                Console.WriteLine("  API return value: (not present in response)");
+            }
+
             PrintBodyPreview(body);
 
-            return ProbeResult.Http(probeName, true, success, detail);
+            TestLog.SaveApiResponse(
+                endpoint.Name,
+                probeName,
+                response.ContentType,
+                statusCode,
+                body,
+                returnValue);
+
+            return ProbeResult.Http(
+                probeName,
+                true,
+                success,
+                detail,
+                body,
+                returnValue,
+                statusCode,
+                response.ContentType);
         }
 
         private static ProbeResult PrintHttpFailure(string probeName, Exception ex)
@@ -237,6 +270,16 @@ namespace InterfaceTester
 
             Console.WriteLine("  Body preview :");
             Console.WriteLine(preview);
+        }
+
+        private static string Truncate(string value, int maxChars)
+        {
+            if (String.IsNullOrEmpty(value) || value.Length <= maxChars)
+            {
+                return value;
+            }
+
+            return value.Substring(0, maxChars) + "...";
         }
     }
 }

@@ -13,3 +13,6 @@ bin-mono/
 *.key
 certs/*.p12
 certs/*.pfx
+logs/**
+!logs/README.txt
+!InterfaceTester/logs/README.txt

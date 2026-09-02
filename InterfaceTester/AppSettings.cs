@@ -10,6 +10,11 @@ namespace InterfaceTester
             get { return GetOptionalAppSetting("InterfacesFile", "Interfaces.xml"); }
         }
 
+        public static string LogDirectory
+        {
+            get { return GetOptionalAppSetting("LogDirectory", "logs"); }
+        }
+
         public static int ConnectionTimeoutSeconds
         {
             get { return GetOptionalIntAppSetting("ConnectionTimeoutSeconds", 30, 1, 600); }

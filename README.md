@@ -91,7 +91,25 @@ If the service uses an internal CA that is not in the Windows trust store, set e
 
 Server certificates are still printed (subject, issuer, chain status) so you can see why validation failed.
 
+## Logs and API return values
+
+Each run writes a timestamped folder under `InterfaceTester\bin\Debug\logs\` (or `LogDirectory` in `App.config`):
+
+```text
+logs\2026-09-02_223045\
+  run.log
+  summary.txt
+  DCS-CAPS-UAT_SOAP_..._response.xml
+  DCS-CAPS-UAT_SOAP_..._return_value.txt
+```
+
+- `run.log` is the full test transcript (same text as the console).
+- `*_response.xml` is the raw HTTP/SOAP body.
+- `*_return_value.txt` is the extracted SOAP `Test()` return value (`TestResult`).
+
+The console also prints `API return value` after each SOAP/HTTP probe.
+
 ## Notes
 
 - A SOAP fault or HTTP 4xx/5xx still means **the connection worked** (TCP + mTLS + HTTP). The summary marks that as `CONNECTED` rather than a TLS failure.
-- P12/PFX files are gitignored. Do not commit certificates or passwords.
+- P12/PFX files and generated logs are gitignored. Do not commit certificates or passwords.
