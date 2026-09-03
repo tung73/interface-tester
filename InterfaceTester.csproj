@@ -52,6 +52,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ServerCertificateValidator.cs" />
+    <Compile Include="SchannelTrace.cs" />
     <Compile Include="SoapResponseParser.cs" />
     <Compile Include="SoapTlsProbeTester.cs" />
     <Compile Include="TestLog.cs" />

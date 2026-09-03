@@ -40,6 +40,16 @@ namespace InterfaceTester
             get { return GetOptionalBoolAppSetting("AcceptUntrustedServerCertificates", false); }
         }
 
+        public static bool CaptureSchannelTrace
+        {
+            get { return GetOptionalBoolAppSetting("CaptureSchannelTrace", false); }
+        }
+
+        public static bool CaptureSchannelPackets
+        {
+            get { return GetOptionalBoolAppSetting("CaptureSchannelPackets", false); }
+        }
+
         public static bool HasAppSetting(string key)
         {
             return ConfigurationManager.AppSettings[key] != null;

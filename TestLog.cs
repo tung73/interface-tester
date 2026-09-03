@@ -179,6 +179,8 @@ namespace InterfaceTester
                 text.AppendLine();
             }
 
+            SchannelTrace.AppendToSummary(text);
+
             File.WriteAllText(summaryPath, text.ToString(), new UTF8Encoding(false));
             Console.WriteLine();
             Console.WriteLine("Summary saved : " + summaryPath);
