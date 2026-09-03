@@ -34,14 +34,14 @@ ASMX SOAP envelope (`soap/TestRequest.xml`):
 ## Setup
 
 1. Pull the latest `main`.
-2. Double-click **`InterfaceTester.sln`** to open it in Visual Studio.
-   Do **not** use File → Open → Folder.
-3. If Solution Explorer says Folder View, click the solution-switch icon and choose `InterfaceTester.sln`.
-4. Right-click **InterfaceTester** → **Set as Startup Project**.
-5. Toolbar should be **Debug** and **Any CPU** (or x86 / x64; all of them build this console app).
-6. Press F5.
+2. Close Visual Studio.
+3. Double-click **`Reset-VS.bat`** (clears a cached “Skipped Build” setting and opens the solution).
+   Or double-click **`InterfaceTester.sln`**. Do **not** use File → Open → Folder.
+4. Right-click **InterfaceTester** → **Set as Startup Project** (the name becomes bold).
+5. **Build → Rebuild Solution**. The output must say **1 succeeded**, not **1 skipped**.
+6. Press **F5**.
 
-If F5 still fails, double-click **`Run.bat`** in the repo root. That builds and runs without the debugger.
+If Visual Studio still skips the project or F5 says the startup project cannot be launched, double-click **`Run.bat`**. That builds with MSBuild and runs the exe without the debugger.
 
 This project is a **.NET Framework 4.8 Console Application**. Visual Studio needs:
 
