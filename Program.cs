@@ -28,7 +28,6 @@ namespace InterfaceTester
             }
             finally
             {
-                SchannelTrace.TryStop();
                 TestLog.Finish();
             }
 
@@ -68,10 +67,6 @@ namespace InterfaceTester
                 AppSettings.TlsHandshakeTimeoutSeconds + " / " +
                 AppSettings.HttpTimeoutSeconds + " seconds");
             Console.WriteLine("Interfaces configured in     : App.config");
-            Console.WriteLine(
-                "Schannel netsh trace         : " +
-                (AppSettings.CaptureSchannelTrace ? "ON" : "off") +
-                (AppSettings.CaptureSchannelPackets ? " (packets)" : ""));
             Console.WriteLine();
 
             List<InterfaceEndpoint> allEndpoints =
@@ -92,8 +87,6 @@ namespace InterfaceTester
                 Console.ResetColor();
                 return 1;
             }
-
-            SchannelTrace.TryStart();
 
             List<InterfaceResult> results = new List<InterfaceResult>();
 

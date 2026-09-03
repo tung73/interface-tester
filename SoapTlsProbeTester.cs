@@ -105,7 +105,7 @@ namespace InterfaceTester
                         {
                             string mismatch =
                                 "Pinned " + protocolName +
-                                " but Schannel negotiated " + negotiatedName +
+                                " but SslStream negotiated " + negotiatedName +
                                 ". SOAP was not sent.";
 
                             Console.ForegroundColor = ConsoleColor.Red;

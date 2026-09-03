@@ -121,9 +121,6 @@ logs\2026-09-02_223045\
   summary.txt
   DCS-CAPS-UAT_SOAP_..._response.xml
   DCS-CAPS-UAT_SOAP_..._return_value.txt
-  schannel.etl
-  schannel.txt
-  schannel_tls.txt
 ```
 
 - `run.log` is the full test transcript (same text as the console).
@@ -137,17 +134,6 @@ logs\2026-09-02_223045\
     TLS pin: TLS 1.2
     Negotiated TLS: TLS 1.2 (SslProtocols=3072 / 0xC00)
 ```
-
-### Optional Schannel netsh proof
-
-Off by default. To capture Windows Schannel events into the same log folder, set in `App.config`:
-
-```xml
-<add key="CaptureSchannelTrace" value="true" />
-<add key="CaptureSchannelPackets" value="false" />
-```
-
-Then run Visual Studio or `InterfaceTester.exe` **as Administrator**. The trace uses the `netsh` catalog GUIDs for `Microsoft-Windows-Schannel-Events`, `Schannel`, and `Security: SChannel`. After the tests you get `schannel.etl`, converted `schannel.txt`, and a short `schannel_tls.txt` excerpt. If `netsh` is not elevated or fails, the SOAP tests still run and the skip reason is in `run.log`.
 
 ## Notes
 

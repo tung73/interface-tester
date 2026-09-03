@@ -253,8 +253,6 @@ namespace InterfaceTester
                 text.AppendLine();
             }
 
-            SchannelTrace.AppendToSummary(text);
-
             if (!String.IsNullOrEmpty(TlsProofPath) && File.Exists(TlsProofPath))
             {
                 text.AppendLine("TLS proof");
