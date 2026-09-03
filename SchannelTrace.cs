@@ -83,7 +83,7 @@ namespace InterfaceTester
                 "Schannel netsh trace          : starting (capture=" +
                 capture + ")");
 
-            CommandResult result = RunNetsh(arguments, 30);
+            CommandResult result = RunNetsh(arguments, 30, true);
 
             AppendNetshLog("START", arguments, result);
 
@@ -110,9 +110,11 @@ namespace InterfaceTester
             _started = false;
 
             Console.WriteLine();
-            Console.WriteLine("Schannel netsh trace          : stopping...");
+            Console.WriteLine(
+                "Schannel netsh trace          : stopping " +
+                "(can take 1-2 minutes, do not close this window)...");
 
-            CommandResult stopResult = RunNetsh("trace stop", 60);
+            CommandResult stopResult = RunNetsh("trace stop", 300, false);
             AppendNetshLog("STOP", "trace stop", stopResult);
 
             if (stopResult.ExitCode != 0)
@@ -121,6 +123,9 @@ namespace InterfaceTester
                 Console.WriteLine(
                     "netsh trace stop failed (exit " + stopResult.ExitCode +
                     "). See schannel_netsh.log.");
+                Console.WriteLine(
+                    "If it timed out, wait, then as Administrator run:");
+                Console.WriteLine("  netsh trace stop");
                 Console.ResetColor();
                 return;
             }
@@ -156,11 +161,14 @@ namespace InterfaceTester
                 return;
             }
 
+            Console.WriteLine(
+                "Schannel netsh trace          : converting etl to text...");
+
             string convertArguments =
                 "trace convert input=\"" + _etlPath + "\"" +
                 " output=\"" + _textPath + "\" dump=TXT report=no";
 
-            CommandResult convertResult = RunNetsh(convertArguments, 120);
+            CommandResult convertResult = RunNetsh(convertArguments, 180, false);
             AppendNetshLog("CONVERT", convertArguments, convertResult);
 
             if (convertResult.ExitCode != 0 || !File.Exists(_textPath))
@@ -231,7 +239,7 @@ namespace InterfaceTester
         {
             string fallback =
                 "trace convert \"" + _etlPath + "\"";
-            CommandResult result = RunNetsh(fallback, 120);
+            CommandResult result = RunNetsh(fallback, 180, false);
             AppendNetshLog("CONVERT-FALLBACK", fallback, result);
 
             if (File.Exists(_textPath))
@@ -320,7 +328,10 @@ namespace InterfaceTester
             return null;
         }
 
-        private static CommandResult RunNetsh(string arguments, int timeoutSeconds)
+        private static CommandResult RunNetsh(
+            string arguments,
+            int timeoutSeconds,
+            bool killOnTimeout)
         {
             CommandResult result = new CommandResult();
             string netsh = ResolveNetshPath();
@@ -381,17 +392,24 @@ namespace InterfaceTester
 
                     if (!process.WaitForExit(timeoutSeconds * 1000))
                     {
-                        try
+                        if (killOnTimeout)
                         {
-                            process.Kill();
-                        }
-                        catch
-                        {
+                            try
+                            {
+                                process.Kill();
+                            }
+                            catch
+                            {
+                            }
                         }
 
                         result.ExitCode = -1;
                         result.Output = output.ToString() +
-                            "Timed out after " + timeoutSeconds + " seconds.";
+                            "Timed out after " + timeoutSeconds +
+                            " seconds." +
+                            (killOnTimeout
+                                ? " netsh was stopped."
+                                : " netsh was left running; run 'netsh trace stop' as Administrator if needed.");
                         return result;
                     }
 
