@@ -26,26 +26,6 @@ namespace InterfaceTester
                 null);
         }
 
-        public static Task<ProbeResult> SoapAsync(
-            InterfaceEndpoint endpoint,
-            X509Certificate2 clientCertificate)
-        {
-            string soapEnvelope = endpoint.LoadSoapEnvelope();
-            string probeName = String.IsNullOrWhiteSpace(endpoint.SoapAction)
-                ? "SOAP testConnection"
-                : "SOAP " + endpoint.SoapAction;
-
-            return SendAsync(
-                endpoint,
-                clientCertificate,
-                probeName,
-                endpoint.Url,
-                "POST",
-                endpoint.ContentType,
-                endpoint.SoapAction ?? "",
-                soapEnvelope);
-        }
-
         private static async Task<ProbeResult> SendAsync(
             InterfaceEndpoint endpoint,
             X509Certificate2 clientCertificate,
@@ -142,15 +122,48 @@ namespace InterfaceTester
             string probeName,
             HttpWebResponse response)
         {
-            string body = ReadBody(response);
-            int statusCode = (int)response.StatusCode;
+            return ReportHttpResult(
+                endpoint,
+                probeName,
+                (int)response.StatusCode,
+                response.StatusCode.ToString(),
+                response.ContentType,
+                ReadBody(response),
+                null);
+        }
+
+        internal static ProbeResult ReportHttpResult(
+            InterfaceEndpoint endpoint,
+            string probeName,
+            int statusCode,
+            string reasonPhrase,
+            string contentType,
+            string body,
+            string extraDetail)
+        {
+            if (body == null)
+            {
+                body = "";
+            }
+
+            if (contentType == null)
+            {
+                contentType = "";
+            }
+
             bool soapFault = IsSoapFault(body);
             bool success = statusCode >= 200 && statusCode < 400 && !soapFault;
             string returnValue = SoapResponseParser.ExtractReturnValue(body);
 
-            string detail =
-                (int)response.StatusCode + " " + response.StatusCode +
-                " (" + response.ContentType + ")";
+            string statusText = statusCode +
+                (String.IsNullOrWhiteSpace(reasonPhrase) ? "" : " " + reasonPhrase);
+
+            string detail = statusText + " (" + contentType + ")";
+
+            if (!String.IsNullOrWhiteSpace(extraDetail))
+            {
+                detail = extraDetail + "; " + detail;
+            }
 
             if (soapFault)
             {
@@ -175,8 +188,8 @@ namespace InterfaceTester
                 Console.ResetColor();
             }
 
-            Console.WriteLine("  Status      : " + statusCode + " " + response.StatusCode);
-            Console.WriteLine("  Content-Type: " + response.ContentType);
+            Console.WriteLine("  Status      : " + statusText);
+            Console.WriteLine("  Content-Type: " + contentType);
             Console.WriteLine("  SOAP fault  : " + soapFault);
 
             if (!String.IsNullOrWhiteSpace(returnValue))
@@ -194,7 +207,7 @@ namespace InterfaceTester
             TestLog.SaveApiResponse(
                 endpoint.Name,
                 probeName,
-                response.ContentType,
+                contentType,
                 statusCode,
                 body,
                 returnValue);
@@ -207,7 +220,7 @@ namespace InterfaceTester
                 body,
                 returnValue,
                 statusCode,
-                response.ContentType);
+                contentType);
         }
 
         private static ProbeResult PrintHttpFailure(string probeName, Exception ex)

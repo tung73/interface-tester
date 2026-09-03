@@ -6,7 +6,7 @@ It checks each configured HTTPS interface with its **own P12 client certificate*
 
 1. TCP connect
 2. Mutual TLS handshake for TLS 1.0, 1.1, 1.2, and 1.3
-3. Application probe (HTTP/WSDL or SOAP `Test`)
+3. Application probe (HTTP/WSDL, or SOAP `Test` pinned to TLS 1.2 and TLS 1.3)
 
 All interface settings live in **`App.config`**. There is no `Interfaces.xml`.
 
@@ -17,8 +17,8 @@ This repo uses the Visual Studio project that already debugs with F5 (`Interface
 | # | Name | URL | Probe |
 | --- | --- | --- | --- |
 | 1 | `CAPS-WLS-UAT` | `https://uat.wls.caps.customs.hksarg:8102/rcaps_ws/CapsCommonInterfaceServiceForDCS` | TLS + HTTP + WSDL |
-| 2 | `DCS-CAPS-UAT` | `https://uat.int.dcs.customs.hksarg:8443/CAPS/WebServices.asmx` | TLS + SOAP `Test` |
-| 3 | `DCS-OCR-DEV` | `https://dev.ext.dcs.customs.hksarg:8443/OCR/WebServices.asmx` | TLS + SOAP `Test` |
+| 2 | `DCS-CAPS-UAT` | `https://uat.int.dcs.customs.hksarg:8443/CAPS/WebServices.asmx` | TLS handshake + SOAP `Test` on TLS 1.2 and TLS 1.3 |
+| 3 | `DCS-OCR-DEV` | `https://dev.ext.dcs.customs.hksarg:8443/OCR/WebServices.asmx` | TLS handshake + SOAP `Test` on TLS 1.2 and TLS 1.3 |
 
 ASMX SOAP envelope (`soap/TestRequest.xml`):
 
@@ -34,6 +34,14 @@ ASMX SOAP envelope (`soap/TestRequest.xml`):
 ```
 
 `SOAPAction` is `http://tempuri.org/Test`.
+
+When `Probes` includes `soap`, the tester does **not** use `HttpWebRequest` for SOAP. It opens a new TCP+mTLS connection twice and posts the envelope:
+
+1. `SslStream` pinned to **TLS 1.2 only**, then SOAP POST
+2. `SslStream` pinned to **TLS 1.3 only**, then SOAP POST
+
+Each SOAP line in the summary shows the negotiated TLS version, so you can see 1.2 and 1.3 separately.
+
 
 ## Setup
 

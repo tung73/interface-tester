@@ -220,9 +220,18 @@ namespace InterfaceTester
             if (endpoint.ProbeSoap)
             {
                 result.Probes.Add(
-                    await HttpProbeTester.SoapAsync(
+                    await SoapTlsProbeTester.PostAsync(
                         endpoint,
-                        clientCertificate));
+                        clientCertificates,
+                        "TLS 1.2",
+                        SslProtocols.Tls12));
+
+                result.Probes.Add(
+                    await SoapTlsProbeTester.PostAsync(
+                        endpoint,
+                        clientCertificates,
+                        "TLS 1.3",
+                        TlsHandshakeTester.Tls13));
             }
 
             return result;
@@ -239,7 +248,9 @@ namespace InterfaceTester
             Console.WriteLine(
                 "and any HTTP/SOAP probe received a response (including SOAP faults).");
             Console.WriteLine(
-                "TLS 1.0 / 1.1 failures are expected on modern servers.");
+                "SOAP is posted twice: TLS 1.2 only, then TLS 1.3 only.");
+            Console.WriteLine(
+                "TLS 1.0 / 1.1 handshake failures are expected on modern servers.");
 
             for (int i = 0; i < results.Count; i++)
             {
