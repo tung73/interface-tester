@@ -8,13 +8,15 @@ It checks each configured HTTPS interface with its **own P12 client certificate*
 2. Mutual TLS handshake for TLS 1.0, 1.1, 1.2, and 1.3
 3. Application probe (SOAP `testConnection` or SOAP `Test`)
 
+All interface settings live in **`InterfaceTester\App.config`**. There is no `Interfaces.xml`.
+
 ## Endpoints
 
-| Name | URL | Probe |
-| --- | --- | --- |
-| `CAPS-WLS-UAT` | `https://uat.wls.caps.customs.hksarg:8102/rcaps_ws/CapsCommonInterfaceServiceForDCS` | TLS + SOAP `testConnection("", null)` |
-| `DCS-CAPS-UAT` | `https://uat.int.dcs.customs.hksarg:8443/CAPS/WebServices.asmx` | TLS + SOAP `Test` |
-| `DCS-OCR-DEV` | `https://dev.ext.dcs.customs.hksarg:8443/OCR/WebServices.asmx` | TLS + SOAP `Test` |
+| # | Name | URL | Probe |
+| --- | --- | --- | --- |
+| 1 | `CAPS-WLS-UAT` | `https://uat.wls.caps.customs.hksarg:8102/rcaps_ws/CapsCommonInterfaceServiceForDCS` | TLS + SOAP `testConnection("", null)` |
+| 2 | `DCS-CAPS-UAT` | `https://uat.int.dcs.customs.hksarg:8443/CAPS/WebServices.asmx` | TLS + SOAP `Test` |
+| 3 | `DCS-OCR-DEV` | `https://dev.ext.dcs.customs.hksarg:8443/OCR/WebServices.asmx` | TLS + SOAP `Test` |
 
 ASMX SOAP envelope (`soap/TestRequest.xml`):
 
@@ -50,6 +52,7 @@ CAPS WLS SOAP (`soap/CapsTestConnection.xml`) matches the old program `ws.testCo
 4. Right-click **InterfaceTester** → **Set as Startup Project** (the name becomes bold).
 5. **Build → Rebuild Solution**. The output must say **1 succeeded**, not **1 skipped**.
 6. Press **F5**.
+7. The console asks which interface to test. Enter **1**, **2**, **3**, or **A** (all).
 
 If Visual Studio still skips the project or F5 says the startup project cannot be launched, double-click **`Run.bat`**. That builds with MSBuild and runs the exe without the debugger.
 
@@ -66,37 +69,56 @@ Before a real connection test, copy each interface P12 into `InterfaceTester\cer
 - `dcs-caps-uat.p12`
 - `dcs-ocr-dev.p12`
 
-Then set each `p12Password` in `InterfaceTester\Interfaces.xml`.
+Then set each `InterfaceN.P12Password` in `InterfaceTester\App.config`.
 
 ## Run
 
+When you start the tester, it prints a menu:
+
+```text
+Which interface do you want to test?
+
+  1. CAPS-WLS-UAT
+  2. DCS-CAPS-UAT
+  3. DCS-OCR-DEV
+  A. Test all
+
+Enter 1, 2, 3, or A:
+```
+
+You can also pass the choice on the command line:
+
 ```text
 InterfaceTester.exe
+InterfaceTester.exe 1
+InterfaceTester.exe 2
+InterfaceTester.exe 3
+InterfaceTester.exe A
 InterfaceTester.exe --list
-InterfaceTester.exe DCS-CAPS-UAT
-InterfaceTester.exe CAPS-WLS-UAT DCS-OCR-DEV
 ```
+
+If stdin is redirected (no keyboard), it tests all enabled interfaces.
 
 ## Add another interface
 
-Add an `<interface>` row to `Interfaces.xml`. Each row needs its own `p12Path`.
+Add the next numbered block in `App.config`. Each interface needs its own P12.
 
 ```xml
-<interface
-    name="MY-SERVICE"
-    url="https://host:8443/path"
-    p12Path="certs\my-service.p12"
-    p12Password="secret"
-    probes="tls,soap"
-    soapAction="http://tempuri.org/Test"
-    soapEnvelopePath="soap\TestRequest.xml" />
+<add key="Interface4.Name" value="MY-SERVICE" />
+<add key="Interface4.Url" value="https://host:8443/path" />
+<add key="Interface4.P12Path" value="certs\my-service.p12" />
+<add key="Interface4.P12Password" value="secret" />
+<add key="Interface4.Enabled" value="true" />
+<add key="Interface4.Probes" value="tls,soap" />
+<add key="Interface4.SoapAction" value="http://tempuri.org/Test" />
+<add key="Interface4.SoapEnvelopePath" value="soap\TestRequest.xml" />
 ```
 
-`probes` can be `tls`, `http`, `wsdl`, `soap` (comma-separated).
+`Probes` can be `tls`, `http`, `wsdl`, `soap` (comma-separated).
 
 If the service uses an internal CA that is not in the Windows trust store, set either:
 
-- `acceptUntrustedServerCertificate="true"` on that interface, or
+- `InterfaceN.AcceptUntrustedServerCertificate` to `true` on that interface, or
 - `AcceptUntrustedServerCertificates` to `true` in `App.config`
 
 Server certificates are still printed (subject, issuer, chain status) so you can see why validation failed.

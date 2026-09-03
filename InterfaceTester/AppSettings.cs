@@ -5,11 +5,6 @@ namespace InterfaceTester
 {
     internal static class AppSettings
     {
-        public static string InterfacesFile
-        {
-            get { return GetOptionalAppSetting("InterfacesFile", "Interfaces.xml"); }
-        }
-
         public static string LogDirectory
         {
             get { return GetOptionalAppSetting("LogDirectory", "logs"); }
@@ -45,6 +40,24 @@ namespace InterfaceTester
             get { return GetOptionalBoolAppSetting("AcceptUntrustedServerCertificates", false); }
         }
 
+        public static bool HasAppSetting(string key)
+        {
+            return ConfigurationManager.AppSettings[key] != null;
+        }
+
+        public static string GetRequiredAppSetting(string key)
+        {
+            string value = ConfigurationManager.AppSettings[key];
+
+            if (String.IsNullOrWhiteSpace(value))
+            {
+                throw new ConfigurationErrorsException(
+                    "App.config is missing required setting '" + key + "'.");
+            }
+
+            return value.Trim();
+        }
+
         public static string GetOptionalAppSetting(string key, string defaultValue)
         {
             string value = ConfigurationManager.AppSettings[key];
@@ -52,6 +65,22 @@ namespace InterfaceTester
             if (String.IsNullOrWhiteSpace(value))
             {
                 return defaultValue;
+            }
+
+            return value.Trim();
+        }
+
+        /*
+         * Returns defaultValue only when the key is absent.
+         * An empty App.config value is kept (needed for SOAPAction="").
+         */
+        public static string GetAppSettingAllowEmpty(string key, string defaultIfMissing)
+        {
+            string value = ConfigurationManager.AppSettings[key];
+
+            if (value == null)
+            {
+                return defaultIfMissing;
             }
 
             return value.Trim();

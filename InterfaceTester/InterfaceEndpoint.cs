@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
-using System.Xml;
 
 namespace InterfaceTester
 {
     internal sealed class InterfaceEndpoint
     {
+        public int Number { get; set; }
         public string Name { get; set; }
         public string Url { get; set; }
         public string P12Path { get; set; }
@@ -40,85 +41,74 @@ namespace InterfaceTester
             }
         }
 
-        public static List<InterfaceEndpoint> LoadFromFile(string path)
+        public static List<InterfaceEndpoint> LoadFromAppConfig()
         {
-            if (!File.Exists(path))
-            {
-                throw new FileNotFoundException(
-                    "Interfaces file was not found.",
-                    path);
-            }
-
-            XmlDocument document = new XmlDocument();
-            document.Load(path);
-
-            XmlNodeList nodes = document.SelectNodes("/interfaces/interface");
-
-            if (nodes == null || nodes.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    "No <interface> entries were found in " + path + ".");
-            }
-
             List<InterfaceEndpoint> endpoints = new List<InterfaceEndpoint>();
 
-            foreach (XmlNode node in nodes)
+            for (int number = 1; number <= 99; number++)
             {
-                endpoints.Add(Parse(node, path));
+                string prefix = "Interface" + number + ".";
+
+                if (!AppSettings.HasAppSetting(prefix + "Name"))
+                {
+                    break;
+                }
+
+                endpoints.Add(Parse(number, prefix));
+            }
+
+            if (endpoints.Count == 0)
+            {
+                throw new ConfigurationErrorsException(
+                    "No interfaces were found in App.config. " +
+                    "Add Interface1.Name, Interface1.Url, Interface1.P12Path, ...");
             }
 
             return endpoints;
         }
 
-        private static InterfaceEndpoint Parse(XmlNode node, string configPath)
+        private static InterfaceEndpoint Parse(int number, string prefix)
         {
             InterfaceEndpoint endpoint = new InterfaceEndpoint();
 
-            endpoint.Name = GetRequiredAttribute(node, "name");
-            endpoint.Url = GetRequiredAttribute(node, "url");
+            endpoint.Number = number;
+            endpoint.Name = AppSettings.GetRequiredAppSetting(prefix + "Name");
+            endpoint.Url = AppSettings.GetRequiredAppSetting(prefix + "Url");
             endpoint.P12Path = ResolvePath(
-                GetRequiredAttribute(node, "p12Path"),
-                configPath);
-            endpoint.P12Password = GetOptionalAttribute(node, "p12Password", "");
-            endpoint.Enabled = ParseBoolean(
-                GetOptionalAttribute(node, "enabled", "true"),
-                "enabled");
-            endpoint.SoapAction = GetAttributeOrDefault(
-                node,
-                "soapAction",
+                AppSettings.GetRequiredAppSetting(prefix + "P12Path"));
+            endpoint.P12Password = AppSettings.GetOptionalAppSetting(
+                prefix + "P12Password",
+                "");
+            endpoint.Enabled = AppSettings.GetOptionalBoolAppSetting(
+                prefix + "Enabled",
+                true);
+            endpoint.SoapAction = AppSettings.GetAppSettingAllowEmpty(
+                prefix + "SoapAction",
                 "http://tempuri.org/Test");
-            endpoint.ContentType = GetOptionalAttribute(
-                node,
-                "contentType",
+            endpoint.ContentType = AppSettings.GetOptionalAppSetting(
+                prefix + "ContentType",
                 "text/xml; charset=utf-8");
 
-            string soapEnvelopePath = GetOptionalAttribute(node, "soapEnvelopePath", "");
+            string soapEnvelopePath = AppSettings.GetOptionalAppSetting(
+                prefix + "SoapEnvelopePath",
+                "");
 
             if (!String.IsNullOrWhiteSpace(soapEnvelopePath))
             {
-                endpoint.SoapEnvelopePath = ResolvePath(soapEnvelopePath, configPath);
+                endpoint.SoapEnvelopePath = ResolvePath(soapEnvelopePath);
             }
 
-            string acceptUntrusted = GetOptionalAttribute(
-                node,
-                "acceptUntrustedServerCertificate",
-                "");
-
-            if (!String.IsNullOrWhiteSpace(acceptUntrusted))
+            if (AppSettings.HasAppSetting(prefix + "AcceptUntrustedServerCertificate"))
             {
-                endpoint.AcceptUntrustedServerCertificate = ParseBoolean(
-                    acceptUntrusted,
-                    "acceptUntrustedServerCertificate");
+                endpoint.AcceptUntrustedServerCertificate =
+                    AppSettings.GetOptionalBoolAppSetting(
+                        prefix + "AcceptUntrustedServerCertificate",
+                        false);
             }
 
-            XmlNode soapNode = node.SelectSingleNode("soapEnvelope");
-
-            if (soapNode != null && !String.IsNullOrWhiteSpace(soapNode.InnerText))
-            {
-                endpoint.SoapEnvelopeXml = soapNode.InnerText.Trim();
-            }
-
-            ApplyProbes(endpoint, GetOptionalAttribute(node, "probes", ""));
+            ApplyProbes(
+                endpoint,
+                AppSettings.GetOptionalAppSetting(prefix + "Probes", ""));
 
             ValidateUrl(endpoint);
 
@@ -170,9 +160,10 @@ namespace InterfaceTester
                 }
                 else
                 {
-                    throw new InvalidOperationException(
-                        "Unknown probe '" + parts[i] + "' on interface '" +
-                        endpoint.Name + "'. Use tls, http, wsdl, soap.");
+                    throw new ConfigurationErrorsException(
+                        "Unknown probe '" + parts[i] + "' on Interface" +
+                        endpoint.Number + " (" + endpoint.Name +
+                        "). Use tls, http, wsdl, soap.");
                 }
             }
         }
@@ -215,75 +206,14 @@ namespace InterfaceTester
             if (!Uri.TryCreate(endpoint.Url, UriKind.Absolute, out uri) ||
                 uri.Scheme != Uri.UriSchemeHttps)
             {
-                throw new InvalidOperationException(
-                    "Interface '" + endpoint.Name +
-                    "' url must be an https URL. Current value: " +
+                throw new ConfigurationErrorsException(
+                    "Interface" + endpoint.Number + " (" + endpoint.Name +
+                    ") Url must be an https URL. Current value: " +
                     endpoint.Url);
             }
         }
 
-        private static string GetRequiredAttribute(XmlNode node, string name)
-        {
-            string value = GetOptionalAttribute(node, name, "");
-
-            if (String.IsNullOrWhiteSpace(value))
-            {
-                throw new InvalidOperationException(
-                    "Interface is missing required attribute '" + name + "'.");
-            }
-
-            return value;
-        }
-
-        private static string GetOptionalAttribute(
-            XmlNode node,
-            string name,
-            string defaultValue)
-        {
-            XmlAttribute attribute = node.Attributes != null
-                ? node.Attributes[name]
-                : null;
-
-            if (attribute == null || String.IsNullOrWhiteSpace(attribute.Value))
-            {
-                return defaultValue;
-            }
-
-            return attribute.Value.Trim();
-        }
-
-        private static string GetAttributeOrDefault(
-            XmlNode node,
-            string name,
-            string defaultValue)
-        {
-            XmlAttribute attribute = node.Attributes != null
-                ? node.Attributes[name]
-                : null;
-
-            if (attribute == null)
-            {
-                return defaultValue;
-            }
-
-            return attribute.Value != null ? attribute.Value.Trim() : "";
-        }
-
-        private static bool ParseBoolean(string value, string attributeName)
-        {
-            bool parsedValue;
-
-            if (!Boolean.TryParse(value, out parsedValue))
-            {
-                throw new InvalidOperationException(
-                    "Attribute '" + attributeName +
-                    "' must be true or false. Current value: " + value);
-            }
-
-            return parsedValue;
-        }
-
-        private static string ResolvePath(string path, string configPath)
+        private static string ResolvePath(string path)
         {
             path = path.Replace('\\', Path.DirectorySeparatorChar)
                        .Replace('/', Path.DirectorySeparatorChar);
@@ -293,14 +223,14 @@ namespace InterfaceTester
                 return path;
             }
 
-            string configDirectory = Path.GetDirectoryName(Path.GetFullPath(configPath));
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
 
-            if (String.IsNullOrEmpty(configDirectory))
+            if (String.IsNullOrEmpty(baseDirectory))
             {
-                configDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                baseDirectory = Directory.GetCurrentDirectory();
             }
 
-            return Path.GetFullPath(Path.Combine(configDirectory, path));
+            return Path.GetFullPath(Path.Combine(baseDirectory, path));
         }
     }
 }
