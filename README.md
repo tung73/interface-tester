@@ -18,7 +18,7 @@ This repo uses the Visual Studio project that already debugs with F5 (`Interface
 | --- | --- | --- | --- |
 | 1 | `CAPS-WLS-UAT` | `https://uat.wls.caps.customs.hksarg:8102/rcaps_ws/CapsCommonInterfaceServiceForDCS` | TLS handshake + SOAP `testConnection` on TLS 1.2 and TLS 1.3 |
 | 2 | `DCS-CAPS-UAT` | `https://uat.int.dcs.customs.hksarg:8443/CAPS/WebServices.asmx` | TLS handshake + SOAP `Test` on TLS 1.2 and TLS 1.3 |
-| 3 | `DCS-OCR-DEV` | `https://dev.ext.dcs.customs.hksarg:8443/OCR/WebServices.asmx` | TLS handshake + SOAP `Test` on TLS 1.2 and TLS 1.3 |
+| 3 | `DCS-OCR-DEV` | `https://dev.ext.dcs.customs.hksarg:8443/OCR/WebService.asmx` | TLS handshake + SOAP `Test` on TLS 1.2 and TLS 1.3 |
 
 ASMX SOAP envelope (`soap/TestRequest.xml`):
 
