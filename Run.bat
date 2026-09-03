@@ -26,7 +26,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-set "EXE=%~dp0InterfaceTester\bin\Debug\InterfaceTester.exe"
+set "EXE=%~dp0bin\Debug\InterfaceTester.exe"
 if not exist "%EXE%" (
   echo Build finished, but InterfaceTester.exe was not found at:
   echo   %EXE%

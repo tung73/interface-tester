@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
@@ -67,21 +66,19 @@ namespace InterfaceTester
                 AppSettings.ConnectionTimeoutSeconds + " / " +
                 AppSettings.TlsHandshakeTimeoutSeconds + " / " +
                 AppSettings.HttpTimeoutSeconds + " seconds");
-
-            string interfacesPath = ResolveInterfacesFile();
-            Console.WriteLine("Interfaces file              : " + interfacesPath);
+            Console.WriteLine("Interfaces configured in     : App.config");
             Console.WriteLine();
 
             List<InterfaceEndpoint> allEndpoints =
-                InterfaceEndpoint.LoadFromFile(interfacesPath);
+                InterfaceEndpoint.LoadFromAppConfig();
 
             if (IsListRequest(args))
             {
-                PrintInterfaceList(allEndpoints);
+                PrintInterfaceMenu(allEndpoints);
                 return 0;
             }
 
-            List<InterfaceEndpoint> endpoints = FilterEndpoints(allEndpoints, args);
+            List<InterfaceEndpoint> endpoints = SelectEndpoints(allEndpoints, args);
 
             if (endpoints.Count == 0)
             {
@@ -120,7 +117,8 @@ namespace InterfaceTester
 
             Console.WriteLine();
             Console.WriteLine("============================================================");
-            Console.WriteLine("INTERFACE: " + endpoint.Name);
+            Console.WriteLine(
+                "INTERFACE " + endpoint.Number + ": " + endpoint.Name);
             Console.WriteLine("============================================================");
             Console.WriteLine("URL      : " + endpoint.Url);
             Console.WriteLine("Host     : " + endpoint.ParsedUrl.Host);
@@ -248,7 +246,9 @@ namespace InterfaceTester
                 InterfaceResult result = results[i];
 
                 Console.WriteLine();
-                Console.WriteLine(result.Endpoint.Name + "  " + result.Endpoint.Url);
+                Console.WriteLine(
+                    result.Endpoint.Number + ". " +
+                    result.Endpoint.Name + "  " + result.Endpoint.Url);
 
                 if (!result.CertificateLoaded)
                 {
@@ -326,22 +326,182 @@ namespace InterfaceTester
                     String.Equals(args[0], "/list", StringComparison.OrdinalIgnoreCase));
         }
 
-        private static void PrintInterfaceList(List<InterfaceEndpoint> endpoints)
+        private static void PrintInterfaceMenu(List<InterfaceEndpoint> endpoints)
         {
-            Console.WriteLine("Configured interfaces:");
+            Console.WriteLine("Which interface do you want to test?");
+            Console.WriteLine();
 
             for (int i = 0; i < endpoints.Count; i++)
             {
+                InterfaceEndpoint endpoint = endpoints[i];
+
                 Console.WriteLine(
-                    "  " + endpoints[i].Name +
-                    (endpoints[i].Enabled ? "" : " (disabled)") +
-                    "  " + endpoints[i].Url);
+                    "  " + endpoint.Number + ". " + endpoint.Name +
+                    (endpoint.Enabled ? "" : " (disabled)"));
+                Console.WriteLine("     " + endpoint.Url);
+            }
+
+            Console.WriteLine("  A. Test all");
+            Console.WriteLine();
+        }
+
+        private static List<InterfaceEndpoint> SelectEndpoints(
+            List<InterfaceEndpoint> endpoints,
+            string[] args)
+        {
+            if (args != null && args.Length > 0)
+            {
+                return ResolveSelection(endpoints, args[0], true);
+            }
+
+            if (Console.IsInputRedirected)
+            {
+                string redirected = Console.ReadLine();
+
+                if (!String.IsNullOrWhiteSpace(redirected))
+                {
+                    return ResolveSelection(endpoints, redirected.Trim(), true);
+                }
+
+                Console.WriteLine(
+                    "Input is redirected. Testing all enabled interfaces.");
+                Console.WriteLine();
+                return EnabledOnly(endpoints);
+            }
+
+            while (true)
+            {
+                PrintInterfaceMenu(endpoints);
+                Console.Write("Enter " + ChoiceHint(endpoints) + ": ");
+
+                string choice = Console.ReadLine();
+
+                if (choice == null)
+                {
+                    return EnabledOnly(endpoints);
+                }
+
+                choice = choice.Trim();
+
+                if (choice.Length == 0)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Please enter " + ChoiceHint(endpoints) + ".");
+                    Console.WriteLine();
+                    continue;
+                }
+
+                try
+                {
+                    return ResolveSelection(endpoints, choice, false);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine();
+                    Console.WriteLine(ex.Message);
+                    Console.ResetColor();
+                    Console.WriteLine();
+                }
             }
         }
 
-        private static List<InterfaceEndpoint> FilterEndpoints(
+        private static List<InterfaceEndpoint> ResolveSelection(
             List<InterfaceEndpoint> endpoints,
-            string[] args)
+            string choice,
+            bool fromArgs)
+        {
+            if (IsAllChoice(choice))
+            {
+                List<InterfaceEndpoint> allEnabled = EnabledOnly(endpoints);
+
+                Console.WriteLine("Selected: all enabled interfaces.");
+                Console.WriteLine();
+                return allEnabled;
+            }
+
+            InterfaceEndpoint found = FindEndpoint(endpoints, choice);
+
+            if (found == null)
+            {
+                string hint = fromArgs
+                    ? " Use " + ChoiceHint(endpoints) + ", or an interface name."
+                    : " Enter " + ChoiceHint(endpoints) + ".";
+
+                throw new InvalidOperationException(
+                    "Unknown choice '" + choice + "'." + hint);
+            }
+
+            if (!found.Enabled)
+            {
+                throw new InvalidOperationException(
+                    "Interface " + found.Number + " (" + found.Name +
+                    ") is disabled in App.config.");
+            }
+
+            Console.WriteLine(
+                "Selected: " + found.Number + ". " + found.Name);
+            Console.WriteLine();
+
+            List<InterfaceEndpoint> selected = new List<InterfaceEndpoint>();
+            selected.Add(found);
+            return selected;
+        }
+
+        private static InterfaceEndpoint FindEndpoint(
+            List<InterfaceEndpoint> endpoints,
+            string choice)
+        {
+            int number;
+
+            if (Int32.TryParse(choice, out number))
+            {
+                for (int i = 0; i < endpoints.Count; i++)
+                {
+                    if (endpoints[i].Number == number)
+                    {
+                        return endpoints[i];
+                    }
+                }
+
+                return null;
+            }
+
+            for (int i = 0; i < endpoints.Count; i++)
+            {
+                if (String.Equals(
+                    endpoints[i].Name,
+                    choice,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return endpoints[i];
+                }
+            }
+
+            return null;
+        }
+
+        private static string ChoiceHint(List<InterfaceEndpoint> endpoints)
+        {
+            List<string> parts = new List<string>();
+
+            for (int i = 0; i < endpoints.Count; i++)
+            {
+                parts.Add(endpoints[i].Number.ToString());
+            }
+
+            return String.Join(", ", parts.ToArray()) + ", or A";
+        }
+
+        private static bool IsAllChoice(string choice)
+        {
+            return String.Equals(choice, "A", StringComparison.OrdinalIgnoreCase) ||
+                   String.Equals(choice, "all", StringComparison.OrdinalIgnoreCase) ||
+                   String.Equals(choice, "*", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static List<InterfaceEndpoint> EnabledOnly(
+            List<InterfaceEndpoint> endpoints)
         {
             List<InterfaceEndpoint> enabled = new List<InterfaceEndpoint>();
 
@@ -353,41 +513,7 @@ namespace InterfaceTester
                 }
             }
 
-            if (args == null || args.Length == 0)
-            {
-                return enabled;
-            }
-
-            List<InterfaceEndpoint> matched = new List<InterfaceEndpoint>();
-
-            for (int a = 0; a < args.Length; a++)
-            {
-                string requested = args[a];
-                InterfaceEndpoint found = null;
-
-                for (int i = 0; i < enabled.Count; i++)
-                {
-                    if (String.Equals(
-                        enabled[i].Name,
-                        requested,
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        found = enabled[i];
-                        break;
-                    }
-                }
-
-                if (found == null)
-                {
-                    throw new InvalidOperationException(
-                        "Unknown interface '" + requested +
-                        "'. Use --list to see configured names.");
-                }
-
-                matched.Add(found);
-            }
-
-            return matched;
+            return enabled;
         }
 
         private static string DescribeProbes(InterfaceEndpoint endpoint)
@@ -425,36 +551,6 @@ namespace InterfaceTester
             }
 
             return url + "?" + query;
-        }
-
-        private static string ResolveInterfacesFile()
-        {
-            string configured = AppSettings.InterfacesFile;
-
-            if (Path.IsPathRooted(configured) && File.Exists(configured))
-            {
-                return configured;
-            }
-
-            string fromBase = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                configured);
-
-            if (File.Exists(fromBase))
-            {
-                return fromBase;
-            }
-
-            string fromCurrent = Path.GetFullPath(configured);
-
-            if (File.Exists(fromCurrent))
-            {
-                return fromCurrent;
-            }
-
-            throw new FileNotFoundException(
-                "Interfaces file was not found. Looked in: " + fromBase,
-                configured);
         }
 
         private static void ConfigureServicePointManager()
