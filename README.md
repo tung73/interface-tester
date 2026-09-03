@@ -42,6 +42,8 @@ When `Probes` includes `soap`, the tester does **not** use `HttpWebRequest` for 
 
 Each SOAP line in the summary shows the negotiated TLS version, so you can see 1.2 and 1.3 separately.
 
+SOAP is sent **only** if `SslStream.SslProtocol` matches the pin. `SslProtocols.Tls12` is 3072 (`0xC00`); TLS 1.3 is 12288 (`0x3000`). A mismatch is a FAIL and the envelope is not posted. Handshake probes (`tls`) still test 1.0–1.3 separately.
+
 
 ## Setup
 
@@ -115,6 +117,7 @@ Each run writes a timestamped folder under `bin\Debug\logs\` (or `LogDirectory` 
 ```text
 logs\2026-09-02_223045\
   run.log
+  tls_proof.txt
   summary.txt
   DCS-CAPS-UAT_SOAP_..._response.xml
   DCS-CAPS-UAT_SOAP_..._return_value.txt
@@ -124,8 +127,16 @@ logs\2026-09-02_223045\
 ```
 
 - `run.log` is the full test transcript (same text as the console).
+- `tls_proof.txt` is the SOAP TLS pin, negotiated version, numeric `SslProtocols` value, cipher, and whether SOAP was sent.
 - `*_response.xml` is the raw HTTP/SOAP body.
 - `*_return_value.txt` is the extracted SOAP return value.
+
+`run.log` and `tls_proof.txt` are the TLS-version proof:
+
+```
+    TLS pin: TLS 1.2
+    Negotiated TLS: TLS 1.2 (SslProtocols=3072 / 0xC00)
+```
 
 ### Optional Schannel netsh proof
 

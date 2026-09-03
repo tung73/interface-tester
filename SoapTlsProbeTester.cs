@@ -45,6 +45,11 @@ namespace InterfaceTester
                     : endpoint.SoapAction));
             Console.WriteLine("  TLS pin : " + protocolName + " only");
 
+            string negotiatedName = null;
+            int negotiatedValue = 0;
+            string cipher = null;
+            bool soapSent = false;
+
             try
             {
                 using (TcpClient tcpClient = new TcpClient())
@@ -79,15 +84,50 @@ namespace InterfaceTester
                             AppSettings.TlsHandshakeTimeoutSeconds +
                             " seconds.");
 
-                        string negotiated =
+                        negotiatedName =
                             TlsHandshakeTester.GetProtocolDisplayName(
                                 sslStream.SslProtocol);
-
-                        Console.WriteLine("  Negotiated TLS : " + negotiated);
-                        Console.WriteLine(
-                            "  Cipher         : " +
+                        negotiatedValue = (int)sslStream.SslProtocol;
+                        int pinnedValue = (int)requiredProtocol;
+                        cipher =
                             sslStream.CipherAlgorithm + " " +
-                            sslStream.CipherStrength + " bits");
+                            sslStream.CipherStrength + " bits";
+                        bool match = negotiatedValue == pinnedValue;
+
+                        Console.WriteLine(
+                            "  Negotiated TLS : " + negotiatedName +
+                            " (SslProtocols=" + negotiatedValue +
+                            " / 0x" + negotiatedValue.ToString("X") + ")");
+                        Console.WriteLine(
+                            "  Cipher         : " + cipher);
+
+                        if (!match)
+                        {
+                            string mismatch =
+                                "Pinned " + protocolName +
+                                " but Schannel negotiated " + negotiatedName +
+                                ". SOAP was not sent.";
+
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("TEST FAILED");
+                            Console.ResetColor();
+                            Console.WriteLine("  " + mismatch);
+
+                            TestLog.AppendTlsProof(
+                                endpoint.Name,
+                                endpoint.Url,
+                                probeName,
+                                protocolName,
+                                pinnedValue,
+                                negotiatedName,
+                                negotiatedValue,
+                                false,
+                                cipher,
+                                false,
+                                mismatch);
+
+                            return ProbeResult.Fail(probeName, mismatch);
+                        }
 
                         byte[] requestBytes = BuildHttpRequest(
                             endpoint,
@@ -99,15 +139,17 @@ namespace InterfaceTester
                         Console.WriteLine("  Bytes   : " + requestBytes.Length);
 
                         await WriteWithTimeoutAsync(sslStream, requestBytes);
+                        soapSent = true;
 
                         ParsedHttpResponse parsed =
                             await ReadHttpResponseAsync(sslStream);
 
                         string extraDetail =
-                            "Negotiated " + negotiated +
-                            " (pinned " + protocolName + ")";
+                            "Negotiated " + negotiatedName +
+                            " (SslProtocols=" + negotiatedValue +
+                            ", pinned " + protocolName + ")";
 
-                        return HttpProbeTester.ReportHttpResult(
+                        ProbeResult httpResult = HttpProbeTester.ReportHttpResult(
                             endpoint,
                             probeName,
                             parsed.StatusCode,
@@ -115,32 +157,107 @@ namespace InterfaceTester
                             parsed.ContentType,
                             parsed.Body,
                             extraDetail);
+
+                        string soapResult = httpResult.Success
+                            ? "PASS HTTP " + parsed.StatusCode
+                            : (httpResult.Connected
+                                ? "CONNECTED HTTP " + parsed.StatusCode
+                                : "FAIL");
+
+                        TestLog.AppendTlsProof(
+                            endpoint.Name,
+                            endpoint.Url,
+                            probeName,
+                            protocolName,
+                            pinnedValue,
+                            negotiatedName,
+                            negotiatedValue,
+                            true,
+                            cipher,
+                            true,
+                            soapResult);
+
+                        return httpResult;
                     }
                 }
             }
             catch (TimeoutException ex)
             {
-                return PrintFailedTest(probeName, protocolName, ex);
+                return PrintFailedTest(
+                    endpoint,
+                    probeName,
+                    protocolName,
+                    requiredProtocol,
+                    negotiatedName,
+                    negotiatedValue,
+                    cipher,
+                    soapSent,
+                    ex);
             }
             catch (AuthenticationException ex)
             {
-                return PrintFailedTest(probeName, protocolName, ex);
+                return PrintFailedTest(
+                    endpoint,
+                    probeName,
+                    protocolName,
+                    requiredProtocol,
+                    negotiatedName,
+                    negotiatedValue,
+                    cipher,
+                    soapSent,
+                    ex);
             }
             catch (SocketException ex)
             {
-                return PrintFailedTest(probeName, protocolName, ex);
+                return PrintFailedTest(
+                    endpoint,
+                    probeName,
+                    protocolName,
+                    requiredProtocol,
+                    negotiatedName,
+                    negotiatedValue,
+                    cipher,
+                    soapSent,
+                    ex);
             }
             catch (Win32Exception ex)
             {
-                return PrintFailedTest(probeName, protocolName, ex);
+                return PrintFailedTest(
+                    endpoint,
+                    probeName,
+                    protocolName,
+                    requiredProtocol,
+                    negotiatedName,
+                    negotiatedValue,
+                    cipher,
+                    soapSent,
+                    ex);
             }
             catch (IOException ex)
             {
-                return PrintFailedTest(probeName, protocolName, ex);
+                return PrintFailedTest(
+                    endpoint,
+                    probeName,
+                    protocolName,
+                    requiredProtocol,
+                    negotiatedName,
+                    negotiatedValue,
+                    cipher,
+                    soapSent,
+                    ex);
             }
             catch (Exception ex)
             {
-                return PrintFailedTest(probeName, protocolName, ex);
+                return PrintFailedTest(
+                    endpoint,
+                    probeName,
+                    protocolName,
+                    requiredProtocol,
+                    negotiatedName,
+                    negotiatedValue,
+                    cipher,
+                    soapSent,
+                    ex);
             }
         }
 
@@ -487,8 +604,14 @@ namespace InterfaceTester
         }
 
         private static ProbeResult PrintFailedTest(
+            InterfaceEndpoint endpoint,
             string probeName,
             string protocolName,
+            SslProtocols requiredProtocol,
+            string negotiatedName,
+            int negotiatedValue,
+            string cipher,
+            bool soapSent,
             Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -496,11 +619,43 @@ namespace InterfaceTester
             Console.ResetColor();
 
             Console.WriteLine("  Requested TLS    : " + protocolName);
+            if (!String.IsNullOrWhiteSpace(negotiatedName))
+            {
+                Console.WriteLine(
+                    "  Negotiated TLS   : " + negotiatedName +
+                    " (SslProtocols=" + negotiatedValue +
+                    " / 0x" + negotiatedValue.ToString("X") + ")");
+            }
+            else
+            {
+                Console.WriteLine("  Negotiated TLS   : (handshake failed)");
+            }
+
             Console.WriteLine("  Exception type   : " + ex.GetType().FullName);
             Console.WriteLine("  Message          : " + ex.Message);
             Console.WriteLine();
             Console.WriteLine("  Full exception:");
             Console.WriteLine(ex.ToString());
+
+            bool match =
+                !String.IsNullOrWhiteSpace(negotiatedName) &&
+                negotiatedValue == (int)requiredProtocol;
+            string soapResult = soapSent
+                ? "SOAP sent, then failed: " + ex.Message
+                : "NO — " + ex.GetType().Name + ": " + ex.Message;
+
+            TestLog.AppendTlsProof(
+                endpoint.Name,
+                endpoint.Url,
+                probeName,
+                protocolName,
+                (int)requiredProtocol,
+                negotiatedName,
+                negotiatedValue,
+                match,
+                cipher,
+                soapSent,
+                soapResult);
 
             return ProbeResult.Fail(probeName, ex.Message);
         }

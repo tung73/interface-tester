@@ -27,6 +27,19 @@ namespace InterfaceTester
             }
         }
 
+        public static string TlsProofPath
+        {
+            get
+            {
+                if (String.IsNullOrEmpty(SessionDirectory))
+                {
+                    return null;
+                }
+
+                return Path.Combine(SessionDirectory, "tls_proof.txt");
+            }
+        }
+
         public static void Start()
         {
             if (_started)
@@ -115,6 +128,67 @@ namespace InterfaceTester
             Console.WriteLine("  Return value saved : " + returnPath);
         }
 
+        public static void AppendTlsProof(
+            string interfaceName,
+            string url,
+            string probeName,
+            string pinnedName,
+            int pinnedValue,
+            string negotiatedName,
+            int negotiatedValue,
+            bool match,
+            string cipher,
+            bool soapSent,
+            string soapResult)
+        {
+            if (!_started)
+            {
+                return;
+            }
+
+            bool firstWrite = !File.Exists(TlsProofPath);
+            StringBuilder text = new StringBuilder();
+
+            if (firstWrite)
+            {
+                text.AppendLine("Interface Tester TLS proof");
+                text.AppendLine(
+                    "Each SOAP POST is sent only after SslStream reports");
+                text.AppendLine(
+                    "the pinned TLS version. Mismatch = SOAP not sent.");
+                text.AppendLine();
+            }
+
+            text.AppendLine("============================================================");
+            text.AppendLine("Saved at    : " + DateTime.Now.ToString("o"));
+            text.AppendLine("Interface   : " + interfaceName);
+            text.AppendLine("URL         : " + url);
+            text.AppendLine("Probe       : " + probeName);
+            text.AppendLine(
+                "Pinned      : " + pinnedName +
+                " (SslProtocols=" + pinnedValue + " / 0x" +
+                pinnedValue.ToString("X") + ")");
+            text.AppendLine(
+                "Negotiated  : " +
+                (String.IsNullOrWhiteSpace(negotiatedName)
+                    ? "(handshake failed)"
+                    : negotiatedName +
+                      " (SslProtocols=" + negotiatedValue + " / 0x" +
+                      negotiatedValue.ToString("X") + ")"));
+            text.AppendLine("Match       : " + (match ? "YES" : "NO"));
+            text.AppendLine(
+                "Cipher      : " +
+                (String.IsNullOrWhiteSpace(cipher) ? "(none)" : cipher));
+            text.AppendLine("SOAP sent   : " + (soapSent ? "YES" : "NO"));
+            text.AppendLine(
+                "SOAP result : " +
+                (String.IsNullOrWhiteSpace(soapResult) ? "(none)" : soapResult));
+            text.AppendLine();
+
+            File.AppendAllText(TlsProofPath, text.ToString(), new UTF8Encoding(false));
+            Console.WriteLine("  TLS proof saved : " + TlsProofPath);
+        }
+
         public static void WriteSummary(List<InterfaceResult> results)
         {
             if (!_started)
@@ -180,6 +254,13 @@ namespace InterfaceTester
             }
 
             SchannelTrace.AppendToSummary(text);
+
+            if (!String.IsNullOrEmpty(TlsProofPath) && File.Exists(TlsProofPath))
+            {
+                text.AppendLine("TLS proof");
+                text.AppendLine("  " + TlsProofPath);
+                text.AppendLine();
+            }
 
             File.WriteAllText(summaryPath, text.ToString(), new UTF8Encoding(false));
             Console.WriteLine();
