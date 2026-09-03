@@ -83,7 +83,7 @@ namespace InterfaceTester
             endpoint.Enabled = ParseBoolean(
                 GetOptionalAttribute(node, "enabled", "true"),
                 "enabled");
-            endpoint.SoapAction = GetOptionalAttribute(
+            endpoint.SoapAction = GetAttributeOrDefault(
                 node,
                 "soapAction",
                 "http://tempuri.org/Test");
@@ -250,6 +250,23 @@ namespace InterfaceTester
             }
 
             return attribute.Value.Trim();
+        }
+
+        private static string GetAttributeOrDefault(
+            XmlNode node,
+            string name,
+            string defaultValue)
+        {
+            XmlAttribute attribute = node.Attributes != null
+                ? node.Attributes[name]
+                : null;
+
+            if (attribute == null)
+            {
+                return defaultValue;
+            }
+
+            return attribute.Value != null ? attribute.Value.Trim() : "";
         }
 
         private static bool ParseBoolean(string value, string attributeName)

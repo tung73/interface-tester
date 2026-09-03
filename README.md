@@ -6,13 +6,13 @@ It checks each configured HTTPS interface with its **own P12 client certificate*
 
 1. TCP connect
 2. Mutual TLS handshake for TLS 1.0, 1.1, 1.2, and 1.3
-3. Application probe (HTTP GET, WSDL, or SOAP `Test`)
+3. Application probe (SOAP `testConnection` or SOAP `Test`)
 
 ## Endpoints
 
 | Name | URL | Probe |
 | --- | --- | --- |
-| `CAPS-WLS-UAT` | `https://uat.wls.caps.customs.hksarg:8102/rcaps_ws/CapsCommonInterfaceServiceForDCS` | TLS + HTTP GET + WSDL |
+| `CAPS-WLS-UAT` | `https://uat.wls.caps.customs.hksarg:8102/rcaps_ws/CapsCommonInterfaceServiceForDCS` | TLS + SOAP `testConnection("", null)` |
 | `DCS-CAPS-UAT` | `https://uat.int.dcs.customs.hksarg:8443/CAPS/WebServices.asmx` | TLS + SOAP `Test` |
 | `DCS-OCR-DEV` | `https://dev.ext.dcs.customs.hksarg:8443/OCR/WebServices.asmx` | TLS + SOAP `Test` |
 
@@ -30,6 +30,16 @@ ASMX SOAP envelope (`soap/TestRequest.xml`):
 ```
 
 `SOAPAction` is `http://tempuri.org/Test`.
+
+CAPS WLS SOAP (`soap/CapsTestConnection.xml`) matches the old program `ws.testConnection("", null)`:
+
+```xml
+<caps:testConnection xmlns:caps="http://endpoint.dcs.ws_i.caps/">
+  <arg0></arg0>
+</caps:testConnection>
+```
+
+`SOAPAction` is empty. The saved return value is the SOAP `<return>` string.
 
 ## Setup
 

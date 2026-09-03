@@ -21,7 +21,9 @@
 		url="https://uat.wls.caps.customs.hksarg:8102/rcaps_ws/CapsCommonInterfaceServiceForDCS"
 		p12Path="certs\caps-wls-uat.p12"
 		p12Password="CHANGE_ME"
-		probes="tls,http,wsdl" />
+		probes="tls,soap"
+		soapAction=""
+		soapEnvelopePath="soap\CapsTestConnection.xml" />
 
 	<interface
 		name="DCS-CAPS-UAT"

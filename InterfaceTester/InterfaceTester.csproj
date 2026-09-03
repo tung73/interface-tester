@@ -99,6 +99,9 @@
     <None Include="soap\TestRequest.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="soap\CapsTestConnection.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="certs\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

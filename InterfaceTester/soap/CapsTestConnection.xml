@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"
+               xmlns:caps="http://endpoint.dcs.ws_i.caps/">
+  <soap:Body>
+    <caps:testConnection>
+      <arg0></arg0>
+    </caps:testConnection>
+  </soap:Body>
+</soap:Envelope>

@@ -37,11 +37,22 @@ namespace InterfaceTester
                     }
                 }
 
-                XmlNode response = FindByLocalName(document.DocumentElement, "TestResponse");
-
-                if (response != null && !String.IsNullOrWhiteSpace(response.InnerText))
+                string[] wrappers = new[]
                 {
-                    return response.InnerText.Trim();
+                    "testConnectionResponse",
+                    "TestResponse"
+                };
+
+                for (int i = 0; i < wrappers.Length; i++)
+                {
+                    XmlNode response = FindByLocalName(
+                        document.DocumentElement,
+                        wrappers[i]);
+
+                    if (response != null && !String.IsNullOrWhiteSpace(response.InnerText))
+                    {
+                        return response.InnerText.Trim();
+                    }
                 }
             }
             catch (XmlException)

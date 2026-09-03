@@ -31,15 +31,18 @@ namespace InterfaceTester
             X509Certificate2 clientCertificate)
         {
             string soapEnvelope = endpoint.LoadSoapEnvelope();
+            string probeName = String.IsNullOrWhiteSpace(endpoint.SoapAction)
+                ? "SOAP testConnection"
+                : "SOAP " + endpoint.SoapAction;
 
             return SendAsync(
                 endpoint,
                 clientCertificate,
-                "SOAP " + endpoint.SoapAction,
+                probeName,
                 endpoint.Url,
                 "POST",
                 endpoint.ContentType,
-                endpoint.SoapAction,
+                endpoint.SoapAction ?? "",
                 soapEnvelope);
         }
 
@@ -60,9 +63,11 @@ namespace InterfaceTester
             Console.WriteLine("  URL     : " + url);
             Console.WriteLine("  Method  : " + method);
 
-            if (!String.IsNullOrWhiteSpace(soapAction))
+            if (soapAction != null)
             {
-                Console.WriteLine("  SOAPAction: " + soapAction);
+                Console.WriteLine(
+                    "  SOAPAction: " +
+                    (soapAction.Length == 0 ? "(empty)" : soapAction));
             }
 
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
@@ -83,7 +88,7 @@ namespace InterfaceTester
                 request.ContentType = contentType;
             }
 
-            if (!String.IsNullOrWhiteSpace(soapAction))
+            if (soapAction != null)
             {
                 request.Headers.Add("SOAPAction", "\"" + soapAction + "\"");
             }
