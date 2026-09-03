@@ -83,6 +83,7 @@ namespace InterfaceTester
 
             _started = true;
             Console.WriteLine("Schannel etl                  : " + _etlPath);
+            Console.WriteLine("netsh                         : " + ResolveNetshPath());
         }
 
         public static void TryStop()
@@ -308,14 +309,12 @@ namespace InterfaceTester
         private static CommandResult RunNetsh(string arguments, int timeoutSeconds)
         {
             CommandResult result = new CommandResult();
-            string netsh = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.System),
-                "netsh.exe");
+            string netsh = ResolveNetshPath();
 
-            if (!File.Exists(netsh))
+            if (String.IsNullOrEmpty(netsh) || !File.Exists(netsh))
             {
                 result.ExitCode = -1;
-                result.Output = "netsh.exe was not found at " + netsh;
+                result.Output = "64-bit netsh.exe was not found. Looked for Sysnative and System32.";
                 return result;
             }
 
@@ -409,6 +408,7 @@ namespace InterfaceTester
             StringBuilder text = new StringBuilder();
             text.AppendLine("============================================================");
             text.AppendLine(step + "  " + DateTime.Now.ToString("o"));
+            text.AppendLine("netsh.exe: " + ResolveNetshPath());
             text.AppendLine("netsh " + arguments);
             text.AppendLine("exit code: " + result.ExitCode);
             text.AppendLine();
@@ -429,6 +429,37 @@ namespace InterfaceTester
         private static bool IsWindows()
         {
             return Environment.OSVersion.Platform == PlatformID.Win32NT;
+        }
+
+        /*
+         * 32-bit netsh (SysWOW64) has no "trace" command. A 32-bit process
+         * must use Sysnative to reach the 64-bit System32 netsh.
+         */
+        private static string ResolveNetshPath()
+        {
+            string windows = Environment.GetFolderPath(
+                Environment.SpecialFolder.Windows);
+
+            if (!Environment.Is64BitProcess && Environment.Is64BitOperatingSystem)
+            {
+                string sysnative = Path.Combine(windows, "Sysnative", "netsh.exe");
+
+                if (File.Exists(sysnative))
+                {
+                    return sysnative;
+                }
+            }
+
+            string system32 = Path.Combine(windows, "System32", "netsh.exe");
+
+            if (File.Exists(system32))
+            {
+                return system32;
+            }
+
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.System),
+                "netsh.exe");
         }
 
         private static bool IsAdministrator()
