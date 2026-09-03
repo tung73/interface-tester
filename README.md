@@ -136,7 +136,7 @@ Off by default. To capture Windows Schannel events into the same log folder, set
 <add key="CaptureSchannelPackets" value="false" />
 ```
 
-Then run Visual Studio or `InterfaceTester.exe` **as Administrator**. After the tests you get `schannel.etl`, converted `schannel.txt`, and a short `schannel_tls.txt` excerpt. If `netsh` is not elevated or fails, the SOAP tests still run and the skip reason is in `run.log`.
+Then run Visual Studio or `InterfaceTester.exe` **as Administrator**. The trace uses the `netsh` catalog GUIDs for `Microsoft-Windows-Schannel-Events`, `Schannel`, and `Security: SChannel`. After the tests you get `schannel.etl`, converted `schannel.txt`, and a short `schannel_tls.txt` excerpt. If `netsh` is not elevated or fails, the SOAP tests still run and the skip reason is in `run.log`.
 
 ## Notes
 

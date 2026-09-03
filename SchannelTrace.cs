@@ -8,6 +8,18 @@ namespace InterfaceTester
 {
     internal static class SchannelTrace
     {
+        /*
+         * netsh trace only accepts providers from its catalog.
+         * "Microsoft-Windows-Schannel" is not in that list.
+         * These GUIDs match `netsh trace show providers | findstr schannel`.
+         */
+        private const string ProviderSchannelEvents =
+            "{91CC1150-71AA-47E2-AE18-C96E61736B6F}";
+        private const string ProviderSchannel =
+            "{1F678132-5938-4686-9FDC-C8FF68F15C85}";
+        private const string ProviderSecuritySchannel =
+            "{37D2C3CD-C5D4-4587-8531-4696C44244C8}";
+
         private static bool _started;
         private static string _sessionDirectory;
         private static string _etlPath;
@@ -61,7 +73,9 @@ namespace InterfaceTester
             string capture = AppSettings.CaptureSchannelPackets ? "yes" : "no";
             string arguments =
                 "trace start capture=" + capture +
-                " provider=Microsoft-Windows-Schannel" +
+                " provider=" + ProviderSchannelEvents +
+                " provider=" + ProviderSchannel +
+                " provider=" + ProviderSecuritySchannel +
                 " tracefile=\"" + _etlPath + "\"" +
                 " maxSize=200 overwrite=yes report=no";
 
